@@ -5,7 +5,7 @@ This project leverages on text data sourced from Twitter in addition to Natural 
 The objective will be to see if applying such methods to Twitter-sourced text data leads to any interesting insights. Future implementations might involve the integration of such findings with an algorithmic trading strategy to take positions based on market sentiment.
 
 <p align="center">
-  <img src="https://github.com/NicholasTanWeiHong/algo-trading-with-natgas-futures/blob/master/images/performance.png?raw=true" alt="wordcloud"/>
+  <img src="https://github.com/NicholasTanWeiHong/crude-oil-sentiment-analysis/blob/master/images/word_cloud.png?raw=true" alt="wordcloud"/>
 </p>
 
 ## Usage
@@ -13,7 +13,7 @@ The objective will be to see if applying such methods to Twitter-sourced text da
 Git clone to a local folder with
 
 ```
-git clone https://github.com/NicholasTanWeiHong/energy-market-sentiment-analysis.git
+git clone https://github.com/NicholasTanWeiHong/crude-oil-sentiment-analysis.git
 ```
 
-Then open ```energy-market-sentiment-analysis.nb.html``` in a browser to view code and output.
+Then open ```crude-oil-sentiment-analysis.nb.html``` in a browser to view code and output.
