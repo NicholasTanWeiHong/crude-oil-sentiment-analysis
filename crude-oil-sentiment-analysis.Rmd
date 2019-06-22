@@ -1,0 +1,457 @@
+---
+title: "Sentiment Analyisis in Crude Oil Markets"
+output: html_notebook
+---
+
+This project leverages on text data sourced from [Twitter](https://twitter.com/) in addition to Natural Language Processing packages in R (E.g. [qdap](https://www.rdocumentation.org/packages/qdap/versions/2.3.2) and [tidytext](https://www.rdocumentation.org/packages/tidytext/versions/0.2.0)) to perform basic Sentiment Analysis.
+
+The objective will be to see if applying such methods to Twitter-sourced text data leads to any interesting insights. Future implementations might involve the integration of such findings with an algorithmic trading strategy to take positions based on market sentiment.
+
+### 1. Importing Required Packages in R
+
+```{r}
+library(knitr)  # Export R Notebook to R Script
+library(qdap)  # Quantitative Discourse Analysis Package
+library(RCurl)  # For HTTP Requests
+library(stringr)  # For String Manipulation
+library(tidytext)  # Natural Language Processing package in R
+library(tidyverse)  # For data wrangling
+library(tm)  # Text Mining
+library(twitteR)  # To connect to the Twitter API
+library(wordcloud)  # Generation of Word Clouds
+```
+
+### 2. Querying Twitter Data into R
+
+```{r}
+# Store the required API keys for connection to Twitter
+api_key <- "hBgUhFxipyNt2JT87QEGuV1Ok"
+api_secret <- "kEkWlcKIC1nHamXMHOrYzZzsevGtnZ26j1XggoannDcvESRx9J"
+access_token <- "898901988754153472-boY81BSVy95r26As36rYxzNX63C6ibl"
+access_token_secret <- "obKPRXeSx6UiLUCQoirN95G2zt66TWepMbKQ032mzZFzL"
+
+# Authenticate against the Twitter API
+setup_twitter_oauth(api_key, api_secret, access_token, access_token_secret)
+```
+```{r}
+# Query tweets related to "#crudeoil"
+crude_tweets <- searchTwitter(searchString = "#crudeoil", n = 1000, lang = "en")
+
+# Examine the crude_tweets object
+head(crude_tweets)
+```
+
+```{r}
+# Convert the raw queried data into a data.frame object
+crude_df <- twListToDF(crude_tweets)
+
+# Examine the data.frame object
+str(crude_df)
+View(crude_df)
+```
+
+### 3. Text Preprocessing
+
+```{r}
+# Remove all preceding "RT" characters in Retweeted tweets
+crude_df$text <- gsub(pattern = "RT", replacement = "", crude_df$text)
+
+# Remove all Twitter user handles in Retweets
+crude_df$text <- gsub(pattern = "@\\w+", replacement = "", crude_df$text)
+
+# Convert all tweets to lower case
+crude_df$text <- tolower(crude_df$text)
+
+# Remove punctuation
+crude_df$text <- removePunctuation(crude_df$text)
+
+# Remove quotation marks
+crude_df$text <- gsub(pattern = '“', replacement = "", crude_df$text)
+
+# Remove URL links
+crude_df$text <- gsub("http\\w+", "", crude_df$text)
+
+# Replace contractions
+crude_df$text <- replace_contraction(crude_df$text)
+
+# Examine the cleaned text data
+crude_df$text[1:10]
+```
+
+```{r}
+# Define a list of uninformative stop-words for removal
+crude_stopwords <- c("crudeoil", "Crudeoil", "crude", "oil", "oott", stopwords("en"))
+
+# Remove all stop words
+crude_df$text <- removeWords(crude_df$text, crude_stopwords)
+
+# Remove all whitespace
+crude_df$text <- stripWhitespace(crude_df$text)
+
+# Examine the text data without stop words
+crude_df$text[1:10]
+```
+
+The Twitter text data at this point appears to be sufficiently pre-processed. Next steps in the project will include basic analytics with wordclouds and ggplot, before moving onto Sentiment Analysis.
+
+### 4. Exploratory Data Analysis with ggplot and wordcloud
+
+```{r}
+# Explore the most common words in the data set
+crude_df %>%
+  unnest_tokens(word, text) %>%
+  group_by(word) %>%
+  count() %>%
+  arrange(desc(n)) %>%
+  head(n = 10) %>%
+  ggplot(mapping = aes(x = reorder(word, desc(n)), y = n, fill = word)) +
+    geom_col() +
+    labs(
+      title = "Word Frequency in #crudeoil tweets",
+      subtitle = "As of 23rd June 2019",
+      x = "Word",
+      y = "Frequency"
+    ) +
+    theme(legend.position = "none")
+```
+
+As we can observe from this early exploration of the data, the most common word in tweets associated with crude oil are "us", "wti" and "iran". This corresponds to the geopolitical situation as of 23rd June 2019 where tensions between the United States and Iran are weighing heavily on the market's view of the oil market.
+
+
+```{r}
+# Generate a simple word cloud on the Twitter data
+wordcloud(
+  words = crude_df$text, 
+  min.freq = 15, 
+  colors = brewer.pal(8, "Dark2"), 
+  random.color = TRUE, 
+  max.words = 250
+  )
+```
+
+The wordcloud visualization reiterates the salient points in the data: the most common words include "iran", "prices", "futures", "june" and "wti" - likely indicating the effect that the US-Iran tensions is having on the futures market for Crude.
+
+### 5. Basic Sentiment Analysis with qdap::polarity()
+
+Next, apart from simple word counts, we want to roughly estimate the "polarity" or emotion of the collection of tweets. To do this, we use the polarity() function from the qdap package.
+
+```{r}
+# Define a Polarity Object for the set of #crudeoil tweets
+crude_polarity <- polarity(crude_df$text)
+
+# Print a summary of the polarity object
+summary(crude_polarity$all$polarity)
+```
+
+```{r}
+# Visualize the polarity object with ggplot
+ggplot(crude_polarity$all, aes(x = polarity, y = ..density..)) +
+  geom_histogram(binwidth = 0.25, fill = "#bada55", colour = "grey60") +
+  geom_density(color = "darkblue") +
+  labs(
+    title = "qdap Polarity Scores of #crudeoil tweets",
+    subtitle = "As of 23rd June 2019",
+    x = "Polarity Score",
+    y = "Frequency"
+  )
+```
+
+A rough analysis of all tweets in the dataset does not suggest that sentiment in this space skews either left or right. Most observations appear to return a polarity score of 0, although the mean does appear to tilt to the left (i.e. negativity).
+
+Further analysis on sentiment will be attempted by joining a pre-loaded Lexicon of sentiment and repeating the analysis.
+
+### 6. Preprocessing for tidytext
+
+Another method of drawing sentiment from textual data involves using the tidytext package and its associated lexicons (E.g. NRC, AFINN and Bing). In this following section, we perform an inner-join of our crude data to the lexicons and attempt to draw further insights.
+
+```{r}
+# Store a character vector containing all tweets
+tweet_vector <- crude_df$text
+
+# Examine the vector
+str(tweet_vector)
+head(tweet_vector)
+tail(tweet_vector)
+```
+
+```{r}
+# Convert the character vector into a Volatilte Corpus
+tweet_corpus <- VCorpus(VectorSource(tweet_vector))
+
+# Convert the corpus into a Document Term Matrix
+tweet_dtm <- DocumentTermMatrix(tweet_corpus)
+tweet_dtm_matrix <- as.matrix(tweet_dtm)
+
+# Examine the Document Term Matrix
+str(tweet_dtm_matrix)
+```
+
+Appropriately, we get a Document Term Matrix with 1000 rows (representing the 1000 tweets that were queried) and 2441 columns (representing 2441 unique terms that were found in the dataset).
+
+```{r}
+# Tidy the Document Term Matrix for tidytext analysis
+tidy_tweets <- tidy(tweet_dtm)
+
+# Examine the tidied dataset
+str(tidy_tweets)
+head(tidy_tweets)
+tail(tidy_tweets)
+```
+
+The second stage of preprocessing gives us a "tidy dataset" i.e. a data structure that abides by "tidyverse" conventions. By having "term" as a column, this gives us the opportunity to join a sentiment lexicon in the next stage to draw insights about the sentiment of the dataset.
+
+### 7. Sentiment Analysis with tidytext
+
+```{r}
+# Store the "Bing" lexicon from tidytext
+bing <- get_sentiments(lexicon = "bing")
+
+# Inner join the Bing lexicon to the Document Term Matrix and generate a Polarity Score
+tweet_polarity_bing <-
+  tidy_tweets %>% 
+  inner_join(bing, by = c("term" = "word")) %>% 
+  mutate(index = as.numeric(document)) %>% 
+  count(sentiment, index) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(polarity = positive - negative)
+
+# Examine the mutated dataset
+str(tweet_polarity_bing)
+head(tweet_polarity_bing)
+```
+
+```{r}
+# Plot Polarity Scores against Index
+ggplot(data = tweet_polarity_bing, aes(rev(index), polarity)) +
+  geom_smooth() +
+  labs(
+    title = "Polarity of #CrudeOil tweets (With Bing Lexicon)",
+    subtitle = "From 19 June to 23 June 2019",
+    x = "Time",
+    y = "Polarity"
+  )
+```
+
+First-stage analysis of the #crudeoil tweet data with the Bing lexicon returns a plot that is much more informative than the earlier analysis with qdap::polarity. Indexed by the tweet id (which is ordered in time), we see that sentiment over the last 4 days appears to have trended downwards.
+
+This is not unsurprising: in the span of these 4 days, the crude oil market reacted strongly to news of [Iran shooting down a U.S. drone over the Straits of Hormuz, in addition to news concerning Trump's willingness to approve military strikes on Iran](https://www.aljazeera.com/news/2019/06/iran-tensions-latest-updates-190621103437644.html). The threat of war has heavy implications on the supply of crude out of the Persian Gulf.
+
+```{r}
+# Store the "AFINN" lexicon from tidytext
+afinn <- get_sentiments(lexicon = "afinn")
+
+# Inner join the AFINN lexicon to the Document Term Matrix and generate a Polarity Score
+tweet_polarity_afinn <-
+  tidy_tweets %>% 
+  inner_join(afinn, by = c("term" = "word")) %>% 
+  mutate(index = as.numeric(document)) %>%
+  count(value, index) %>% 
+  group_by(index) %>% 
+  summarize(polarity = sum(value * n))
+
+# Examine the mutated dataset
+str(tweet_polarity_afinn)
+head(tweet_polarity_afinn)
+```
+
+```{r}
+# Plot Polarity Scores against Index
+ggplot(data = tweet_polarity_afinn, aes(rev(index), polarity)) +
+  geom_smooth() +
+  labs(
+    title = "Polarity of #CrudeOil tweets (With AFINN Lexicon)",
+    subtitle = "From 19 June to 23 June 2019",
+    x = "Time",
+    y = "Polarity"
+  )
+```
+
+Repeating the analysis with the AFINN Lexicon shows different results: sentiment appeared to fall earlier in time, but reversed the trend halfway and is now trending up.
+
+This is another interpretation of the set of geopolitical events: with the Iran strike on the U.S. drone, market expectations of war might have increased - but with Trump's confirmation of his decision to *call back* the strikes on Iran, the market may have expressed relief: hence the reversal in sentiment.
+
+```{r}
+# Store the "Loughran-Macdonald" Sentiment Lexicon from tidytext
+loughran <- get_sentiments(lexicon = "loughran")
+
+# Inner join the Bing lexicon to the Document Term Matrix and generate a Polarity Score
+tweet_polarity_loughran <-
+  tidy_tweets %>% 
+  inner_join(loughran, by = c("term" = "word")) %>% 
+  mutate(index = as.numeric(document)) %>% 
+  group_by(sentiment) %>% 
+  summarize(count = sum(count))
+
+# Examine the mutated dataset
+str(tweet_polarity_loughran)
+head(tweet_polarity_loughran)
+```
+
+```{r}
+# Plot a distribution of sentiments
+ggplot(tweet_polarity_loughran, aes(x = reorder(sentiment, desc(count)), y = count, fill = sentiment)) +
+  geom_col() +
+  labs(
+    title = "Polarity of #CrudeOil tweets (With Loughran-Macdonald Lexicon)",
+    subtitle = "From 19 June to 23 June 2019",
+    x = "Sentiment",
+    y = "Count"
+  ) +
+  theme(legend.position = "none")
+```
+
+A final analysis with the Loughran-Macdonald Sentiment Lexicon shows a few more interesting insights. Sentiment across the 4-day period appear to be predominantly negative, with the next most apparent sentiment being "uncertainty".
+
+Again, such numerical findings correspond closely to the geopolitical situation at hand. Geopolitical risks such as a military conflict between the U.S. and Iran have heavy consequences on the financial and physical markets surrounding crude oil.
+
+### 8. Comparison Clouds, Commonality Clouds and Pyramind Plots
+
+In this final section, we split the tweet data into Positive and Negative baskets and draw out the most frequent terms per category.
+
+To do so, we structure the data as a Term Document Matrix instead of a Document Term Matrix as a we did before.
+
+```{r}
+# Extract all "positive-sentiment" tweets and collapse into a single string
+pos_terms <-
+  crude_df %>% 
+  mutate(polarity = polarity(text)$all$polarity) %>% 
+  filter(polarity > 0) %>% 
+  pull(text) %>% 
+  paste(collapse = " ")
+
+# View the joined string
+substr(pos_terms, 1, 100)
+```
+
+```{r}
+# Extract all "negative-sentiment" tweets and collapse into a single string
+neg_terms <-
+  crude_df %>% 
+  mutate(polarity = polarity(text)$all$polarity) %>% 
+  filter(polarity < 0) %>% 
+  pull(text) %>% 
+  paste(collapse = " ")
+
+# View the joined string
+substr(neg_terms, 1, 100)
+```
+
+```{r}
+# Concatenate the two strings into a vector with 2 elements
+all_terms <- c(pos_terms, neg_terms)
+
+# Convert the vector into a Corpus
+corpus_all_terms <- VCorpus(VectorSource(all_terms))
+
+# Convert the Corpus into a TermDocumentMatrix
+tdm_all_terms <- TermDocumentMatrix(
+  corpus_all_terms,
+  control = list(
+    weighting = weightTf,
+    removePunctuation = TRUE
+  )
+)
+
+# Convert the TDM into an R matrix object
+matrix_all_terms <- as.matrix(tdm_all_terms)
+colnames(matrix_all_terms) <- c("Positive", "Negative")
+
+# View the TDM Matrix
+tail(matrix_all_terms)
+```
+
+```{r}
+# Plot a Comparison Cloud with the tidied TDM
+comparison.cloud(matrix_all_terms, colors = c("green", "red"))
+```
+
+```{r}
+commonality.cloud(matrix_all_terms, colors = "steelblue1")
+```
+
+Plotting both a Comparison Cloud and a Commonality Cloud shows a number of things: for instance, negative tweets are associated with words such as "iran", "volatility", "strait" and "strike" - another perspective to market sentiment vis-a-vis geopolitics in the Strait of Hormuz.
+
+Positive tweets are associated with "fed", "gold", "bullish" and "stocks": a likely result of discussions around the Federal Reserve's dovish stance on interest rates and its correlated bullish effect on commodity markets. (A lower USD environment makes commodities priced in the currency *relatively less expensive* thus boosting demand)
+
+Lastly, the commonality cloud tells us that some of the most common words occurring in both negative and positive #crudeoil tweets involve "price", "trump", "futures" and "wti". These are relative neutral terms describing things moving the market and are thus expected in the commonality cloud.
+
+```{r}
+# Create a data.frame containing 25 of the most common terms to compare
+top15_terms <-
+  matrix_all_terms %>% 
+  as_tibble(rownames = "word") %>% 
+  filter_all(all_vars(. > 0)) %>% 
+  mutate(difference = Positive - Negative) %>% 
+  top_n(15, wt = difference) %>% 
+  arrange(desc(difference))
+
+# Examine the top 25 terms
+head(top15_terms)
+```
+
+```{r}
+# Create a Pyramid Plot to visualize the differences
+library(plotrix)
+
+pyramid.plot(
+  top15_terms$Positive,
+  top15_terms$Negative,
+  labels = top15_terms$word,
+  top.labels = c("Positive", "Word", "Negative"),
+  main = "Words in Common",
+  unit = NULL,
+  gap = 10,
+  space = 0.2
+)
+
+```
+
+Finally, the pyramid plot gives us some insight into the "net emotion" of particular words: for instance, we can see that "bullish" occurs much more frequently in Positive tweets than in Negative ones. Interestingly, the word "downtrend" appears much more often in Positive tweets than in Negative ones as well.
+
+### 9. Word Networks with qdap
+
+A final form of analysis can tell us what words are most associated with a pre-defined word. We do this with the word_associate() function in qdap which can generate network graphs and/or word clouds around this form of analysis.
+
+```{r}
+# Create a Word Network plot with qdap'
+word_associate(
+  crude_df$text, 
+  match.string = c("trump"), 
+  stopwords = c("crude", stopwords("en")), 
+  wordcloud = TRUE, 
+  cloud.colors = c("gray85", "darkred"),
+  nw.label.proportional = TRUE
+  )
+
+title(main = "Words Associated with Trump in #CrudeOil Tweets")
+```
+
+```{r}
+# Create a Word Network plot with qdap'
+word_associate(
+  crude_df$text, 
+  match.string = c("fed"), 
+  stopwords = c("crude", stopwords("en")), 
+  wordcloud = TRUE, 
+  cloud.colors = c("gray85", "darkred"),
+  nw.label.proportional = TRUE
+  )
+
+title(main = "Words Associated with Fed in #CrudeOil Tweets")
+```
+
+### 10. Final Conclusions
+
+This project attempted to leverage on key NLP libraries in R to derive new insights about market sentiment in the Crude Oil market.
+
+By using a variety of Sentiment Lexicons, we found that, on average, sentiment for tweets tagged with #crudeoil tended towards the negative. This was unsurprising considering geopolitical developments around the U.S. and Iran, and the effect that those events have on the supply of crude oil.
+
+Interestingly, we note that *price action* for Crude Oil in this timeframe was *overwhelmingly bullish*. (Note only was there the looming threat of war cutting off crude supplies, but the Fed's dovish outlook also provided support for prices). This suggests that a naive interpretation of using negative sentiment to take bearish positions is overwhelmingly simplistic.
+
+Future projects could involve the transformation of such sentiment data into an algorithmic trading strategy with packages such as 'quanstrat'.
+
+```{r}
+# Export the analysis to an R Script
+purl("crude-oil-sentiment-analysis.Rmd")
+```
+
