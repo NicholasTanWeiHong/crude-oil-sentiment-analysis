@@ -1,5 +1,5 @@
 ---
-title: "Sentiment Analyisis in Crude Oil Markets"
+title: "Sentiment Analysis in Crude Oil Markets"
 date: Last updated as of `r Sys.Date()`
 output: 
   github_document:
@@ -30,7 +30,7 @@ library(wordcloud)  # Generation of Word Clouds
 
 ### 1. Import Text Data
 
-```{r message=FALSE}
+```{r read_data, message=FALSE}
 crude_df <- read_csv("tweets.csv")
 ```
 
@@ -137,7 +137,7 @@ A rough analysis of all tweets in the dataset does not suggest that sentiment in
 
 Further analysis on sentiment will be attempted by joining a pre-loaded Lexicon of sentiment and repeating the analysis.
 
-### 6. Preprocessing for tidytext
+### 5. Preprocessing for tidytext
 
 Another method of drawing sentiment from textual data involves using the tidytext package and its associated lexicons (E.g. NRC, AFINN and Bing). In this following section, we perform an inner-join of our crude data to the lexicons and attempt to draw further insights.
 
@@ -173,9 +173,9 @@ head(tidy_tweets)
 
 The second stage of preprocessing gives us a "tidy dataset" i.e. a data structure that abides by "tidyverse" conventions. By having "term" as a column, this gives us the opportunity to join a sentiment lexicon in the next stage to draw insights about the sentiment of the dataset.
 
-### 7. Sentiment Analysis with tidytext
+### 6. Sentiment Analysis with tidytext Lexicons
 
-```{r bing_polarity}
+```{r def_bing_polarity}
 # Store the "Bing" lexicon from tidytext
 bing <- get_sentiments(lexicon = "bing")
 
@@ -206,7 +206,7 @@ ggplot(data = tweet_polarity_bing, aes(rev(index), polarity)) +
 ```
 
 
-```{r afinn_polarity}
+```{r def_afinn_polarity}
 # Store the "AFINN" lexicon from tidytext
 afinn <- get_sentiments(lexicon = "afinn")
 
@@ -237,7 +237,7 @@ ggplot(data = tweet_polarity_afinn, aes(rev(index), polarity)) +
 ```
 
 
-```{r loughran_polarity}
+```{r def_loughran_polarity}
 # Store the "Loughran-Macdonald" Sentiment Lexicon from tidytext
 loughran <- get_sentiments(lexicon = "loughran")
 
@@ -268,7 +268,7 @@ ggplot(tweet_polarity_loughran, aes(x = reorder(sentiment, desc(count)), y = cou
 ```
 
 
-### 8. Comparison Clouds, Commonality Clouds and Pyramind Plots
+### 7. Comparison Clouds, Commonality Clouds and Pyramind Plots
 
 In this final section, we split the tweet data into Positive and Negative baskets and draw out the most frequent terms per category.
 
@@ -333,7 +333,7 @@ comparison.cloud(matrix_all_terms, colors = c("green", "red"))
 commonality.cloud(matrix_all_terms, colors = "steelblue1")
 ```
 
-```{r comparison_df}
+```{r def_comparison}
 # Create a data.frame containing 25 of the most common terms to compare
 top15_terms <-
   matrix_all_terms %>% 
@@ -365,7 +365,7 @@ pyramid.plot(
 ```
 
 
-### 9. Word Networks with qdap
+### 8. Word Networks with qdap
 
 A final form of analysis can tell us what words are most associated with a pre-defined word. We do this with the word_associate() function in qdap which can generate network graphs and/or word clouds around this form of analysis.
 
@@ -397,7 +397,7 @@ word_associate(
 title(main = "Words Associated with Fed in #CrudeOil Tweets")
 ```
 
-### 10. Final Conclusions
+### 9. Final Conclusions
 
 This project attempted to leverage on key NLP libraries in R to derive new insights about market sentiment in the Crude Oil market.
 

@@ -1,4 +1,4 @@
-Sentiment Analyisis in Crude Oil Markets
+Sentiment Analysis in Crude Oil Markets
 ================
 Last updated as of 2019-07-05
 
@@ -11,13 +11,13 @@ Last updated as of 2019-07-05
         wordcloud](#exploratory-data-analysis-with-ggplot-and-wordcloud)
       - [4. Basic Sentiment Analysis with
         qdap::polarity()](#basic-sentiment-analysis-with-qdappolarity)
-      - [6. Preprocessing for tidytext](#preprocessing-for-tidytext)
-      - [7. Sentiment Analysis with
-        tidytext](#sentiment-analysis-with-tidytext)
-      - [8. Comparison Clouds, Commonality Clouds and Pyramind
+      - [5. Preprocessing for tidytext](#preprocessing-for-tidytext)
+      - [6. Sentiment Analysis with tidytext
+        Lexicons](#sentiment-analysis-with-tidytext-lexicons)
+      - [7. Comparison Clouds, Commonality Clouds and Pyramind
         Plots](#comparison-clouds-commonality-clouds-and-pyramind-plots)
-      - [9. Word Networks with qdap](#word-networks-with-qdap)
-      - [10. Final Conclusions](#final-conclusions)
+      - [8. Word Networks with qdap](#word-networks-with-qdap)
+      - [9. Final Conclusions](#final-conclusions)
 
 ## Project Summary
 
@@ -184,7 +184,7 @@ tilt to the left (i.e. negativity).
 Further analysis on sentiment will be attempted by joining a pre-loaded
 Lexicon of sentiment and repeating the analysis.
 
-### 6\. Preprocessing for tidytext
+### 5\. Preprocessing for tidytext
 
 Another method of drawing sentiment from textual data involves using the
 tidytext package and its associated lexicons (E.g. NRC, AFINN and Bing).
@@ -250,7 +250,7 @@ structure that abides by “tidyverse” conventions. By having “term” as a
 column, this gives us the opportunity to join a sentiment lexicon in the
 next stage to draw insights about the sentiment of the dataset.
 
-### 7\. Sentiment Analysis with tidytext
+### 6\. Sentiment Analysis with tidytext Lexicons
 
 ``` r
 # Store the "Bing" lexicon from tidytext
@@ -377,7 +377,7 @@ ggplot(tweet_polarity_loughran, aes(x = reorder(sentiment, desc(count)), y = cou
 
 ![](crude-oil-sentiment-analysis_files/figure-gfm/plot_loughran-1.png)<!-- -->
 
-### 8\. Comparison Clouds, Commonality Clouds and Pyramind Plots
+### 7\. Comparison Clouds, Commonality Clouds and Pyramind Plots
 
 In this final section, we split the tweet data into Positive and
 Negative baskets and draw out the most frequent terms per category.
@@ -506,7 +506,7 @@ pyramid.plot(
 
     ## [1] 5.1 4.1 4.1 2.1
 
-### 9\. Word Networks with qdap
+### 8\. Word Networks with qdap
 
 A final form of analysis can tell us what words are most associated with
 a pre-defined word. We do this with the word\_associate() function in
@@ -589,7 +589,7 @@ title(main = "Words Associated with Fed in #CrudeOil Tweets")
 
 ![](crude-oil-sentiment-analysis_files/figure-gfm/plot_network2-1.png)<!-- -->
 
-### 10\. Final Conclusions
+### 9\. Final Conclusions
 
 This project attempted to leverage on key NLP libraries in R to derive
 new insights about market sentiment in the Crude Oil market.

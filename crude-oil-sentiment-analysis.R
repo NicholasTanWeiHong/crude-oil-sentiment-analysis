@@ -9,7 +9,7 @@ library(tm)  # Text Mining
 library(wordcloud)  # Generation of Word Clouds
 
 
-## ----message=FALSE-------------------------------------------------------
+## ----read_data, message=FALSE--------------------------------------------
 crude_df <- read_csv("tweets.csv")
 
 
@@ -129,7 +129,7 @@ tidy_tweets <- tidy(tweet_dtm)
 head(tidy_tweets)
 
 
-## ----bing_polarity-------------------------------------------------------
+## ----def_bing_polarity---------------------------------------------------
 # Store the "Bing" lexicon from tidytext
 bing <- get_sentiments(lexicon = "bing")
 
@@ -159,7 +159,7 @@ ggplot(data = tweet_polarity_bing, aes(rev(index), polarity)) +
   theme_minimal()
 
 
-## ----afinn_polarity------------------------------------------------------
+## ----def_afinn_polarity--------------------------------------------------
 # Store the "AFINN" lexicon from tidytext
 afinn <- get_sentiments(lexicon = "afinn")
 
@@ -189,7 +189,7 @@ ggplot(data = tweet_polarity_afinn, aes(rev(index), polarity)) +
   theme_minimal()
 
 
-## ----loughran_polarity---------------------------------------------------
+## ----def_loughran_polarity-----------------------------------------------
 # Store the "Loughran-Macdonald" Sentiment Lexicon from tidytext
 loughran <- get_sentiments(lexicon = "loughran")
 
@@ -278,7 +278,7 @@ comparison.cloud(matrix_all_terms, colors = c("green", "red"))
 commonality.cloud(matrix_all_terms, colors = "steelblue1")
 
 
-## ----comparison_df-------------------------------------------------------
+## ----def_comparison------------------------------------------------------
 # Create a data.frame containing 25 of the most common terms to compare
 top15_terms <-
   matrix_all_terms %>% 
