@@ -1,4 +1,4 @@
-## ------------------------------------------------------------------------
+## ----message=FALSE-------------------------------------------------------
 library(knitr)  # Export R Notebook to R Script
 library(qdap)  # Quantitative Discourse Analysis Package
 library(RCurl)  # For HTTP Requests
@@ -6,38 +6,14 @@ library(stringr)  # For String Manipulation
 library(tidytext)  # Natural Language Processing package in R
 library(tidyverse)  # For data wrangling
 library(tm)  # Text Mining
-library(twitteR)  # To connect to the Twitter API
 library(wordcloud)  # Generation of Word Clouds
 
 
-## ------------------------------------------------------------------------
-# Store the required API keys for connection to Twitter
-api_key <- "hBgUhFxipyNt2JT87QEGuV1Ok"
-api_secret <- "kEkWlcKIC1nHamXMHOrYzZzsevGtnZ26j1XggoannDcvESRx9J"
-access_token <- "898901988754153472-boY81BSVy95r26As36rYxzNX63C6ibl"
-access_token_secret <- "obKPRXeSx6UiLUCQoirN95G2zt66TWepMbKQ032mzZFzL"
-
-# Authenticate against the Twitter API
-setup_twitter_oauth(api_key, api_secret, access_token, access_token_secret)
-
-## ------------------------------------------------------------------------
-# Query tweets related to "#crudeoil"
-crude_tweets <- searchTwitter(searchString = "#crudeoil", n = 1000, lang = "en")
-
-# Examine the crude_tweets object
-head(crude_tweets)
+## ----message=FALSE-------------------------------------------------------
+crude_df <- read_csv("tweets.csv")
 
 
-## ------------------------------------------------------------------------
-# Convert the raw queried data into a data.frame object
-crude_df <- twListToDF(crude_tweets)
-
-# Examine the data.frame object
-str(crude_df)
-View(crude_df)
-
-
-## ------------------------------------------------------------------------
+## ----preprocess_text-----------------------------------------------------
 # Remove all preceding "RT" characters in Retweeted tweets
 crude_df$text <- gsub(pattern = "RT", replacement = "", crude_df$text)
 
@@ -59,11 +35,6 @@ crude_df$text <- gsub("http\\w+", "", crude_df$text)
 # Replace contractions
 crude_df$text <- replace_contraction(crude_df$text)
 
-# Examine the cleaned text data
-crude_df$text[1:10]
-
-
-## ------------------------------------------------------------------------
 # Define a list of uninformative stop-words for removal
 crude_stopwords <- c("crudeoil", "Crudeoil", "crude", "oil", "oott", stopwords("en"))
 
@@ -77,7 +48,7 @@ crude_df$text <- stripWhitespace(crude_df$text)
 crude_df$text[1:10]
 
 
-## ------------------------------------------------------------------------
+## ----plot_wordfreqs------------------------------------------------------
 # Explore the most common words in the data set
 crude_df %>%
   unnest_tokens(word, text) %>%
@@ -89,14 +60,15 @@ crude_df %>%
     geom_col() +
     labs(
       title = "Word Frequency in #crudeoil tweets",
-      subtitle = "As of 23rd June 2019",
+      subtitle = paste("Data collected on", Sys.Date()),
+      caption = "Source: Twitter API",
       x = "Word",
-      y = "Frequency"
-    ) +
+      y = "Frequency") +
+    theme_minimal() +
     theme(legend.position = "none")
 
 
-## ------------------------------------------------------------------------
+## ----plot_wordcloud, warning=FALSE---------------------------------------
 # Generate a simple word cloud on the Twitter data
 wordcloud(
   words = crude_df$text, 
@@ -107,7 +79,7 @@ wordcloud(
   )
 
 
-## ------------------------------------------------------------------------
+## ----compute_polarity----------------------------------------------------
 # Define a Polarity Object for the set of #crudeoil tweets
 crude_polarity <- polarity(crude_df$text)
 
@@ -115,30 +87,29 @@ crude_polarity <- polarity(crude_df$text)
 summary(crude_polarity$all$polarity)
 
 
-## ------------------------------------------------------------------------
+## ----plot_polarity, warning=FALSE----------------------------------------
 # Visualize the polarity object with ggplot
 ggplot(crude_polarity$all, aes(x = polarity, y = ..density..)) +
   geom_histogram(binwidth = 0.25, fill = "#bada55", colour = "grey60") +
   geom_density(color = "darkblue") +
   labs(
     title = "qdap Polarity Scores of #crudeoil tweets",
-    subtitle = "As of 23rd June 2019",
+    subtitle = paste("As of", Sys.Date()),
+    caption = "Source: Twitter API",
     x = "Polarity Score",
     y = "Frequency"
   )
 
 
-## ------------------------------------------------------------------------
+## ----store_vector--------------------------------------------------------
 # Store a character vector containing all tweets
 tweet_vector <- crude_df$text
 
 # Examine the vector
-str(tweet_vector)
 head(tweet_vector)
-tail(tweet_vector)
 
 
-## ------------------------------------------------------------------------
+## ----create_corpus-------------------------------------------------------
 # Convert the character vector into a Volatilte Corpus
 tweet_corpus <- VCorpus(VectorSource(tweet_vector))
 
@@ -150,17 +121,15 @@ tweet_dtm_matrix <- as.matrix(tweet_dtm)
 str(tweet_dtm_matrix)
 
 
-## ------------------------------------------------------------------------
+## ----tidy_data-----------------------------------------------------------
 # Tidy the Document Term Matrix for tidytext analysis
 tidy_tweets <- tidy(tweet_dtm)
 
 # Examine the tidied dataset
-str(tidy_tweets)
 head(tidy_tweets)
-tail(tidy_tweets)
 
 
-## ------------------------------------------------------------------------
+## ----bing_polarity-------------------------------------------------------
 # Store the "Bing" lexicon from tidytext
 bing <- get_sentiments(lexicon = "bing")
 
@@ -175,22 +144,22 @@ tweet_polarity_bing <-
 
 # Examine the mutated dataset
 str(tweet_polarity_bing)
-head(tweet_polarity_bing)
 
 
-## ------------------------------------------------------------------------
+## ----plot_bing-----------------------------------------------------------
 # Plot Polarity Scores against Index
 ggplot(data = tweet_polarity_bing, aes(rev(index), polarity)) +
   geom_smooth() +
   labs(
     title = "Polarity of #CrudeOil tweets (With Bing Lexicon)",
-    subtitle = "From 19 June to 23 June 2019",
+    caption = "Source: Twitter API, Bing Lexicon",
     x = "Time",
     y = "Polarity"
-  )
+  ) +
+  theme_minimal()
 
 
-## ------------------------------------------------------------------------
+## ----afinn_polarity------------------------------------------------------
 # Store the "AFINN" lexicon from tidytext
 afinn <- get_sentiments(lexicon = "afinn")
 
@@ -204,23 +173,23 @@ tweet_polarity_afinn <-
   summarize(polarity = sum(value * n))
 
 # Examine the mutated dataset
-str(tweet_polarity_afinn)
 head(tweet_polarity_afinn)
 
 
-## ------------------------------------------------------------------------
+## ----plot_afinn----------------------------------------------------------
 # Plot Polarity Scores against Index
 ggplot(data = tweet_polarity_afinn, aes(rev(index), polarity)) +
   geom_smooth() +
   labs(
     title = "Polarity of #CrudeOil tweets (With AFINN Lexicon)",
-    subtitle = "From 19 June to 23 June 2019",
+    caption = "Source: Twitter API, AFINN Lexicon",
     x = "Time",
     y = "Polarity"
-  )
+  ) +
+  theme_minimal()
 
 
-## ------------------------------------------------------------------------
+## ----loughran_polarity---------------------------------------------------
 # Store the "Loughran-Macdonald" Sentiment Lexicon from tidytext
 loughran <- get_sentiments(lexicon = "loughran")
 
@@ -233,24 +202,24 @@ tweet_polarity_loughran <-
   summarize(count = sum(count))
 
 # Examine the mutated dataset
-str(tweet_polarity_loughran)
 head(tweet_polarity_loughran)
 
 
-## ------------------------------------------------------------------------
+## ----plot_loughran-------------------------------------------------------
 # Plot a distribution of sentiments
 ggplot(tweet_polarity_loughran, aes(x = reorder(sentiment, desc(count)), y = count, fill = sentiment)) +
   geom_col() +
   labs(
     title = "Polarity of #CrudeOil tweets (With Loughran-Macdonald Lexicon)",
-    subtitle = "From 19 June to 23 June 2019",
+    caption = "Source: Twitter API, Loughran-Macdonald Lexicon",
     x = "Sentiment",
     y = "Count"
   ) +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  theme_minimal()
 
 
-## ------------------------------------------------------------------------
+## ----segregate_sentiment-------------------------------------------------
 # Extract all "positive-sentiment" tweets and collapse into a single string
 pos_terms <-
   crude_df %>% 
@@ -263,7 +232,7 @@ pos_terms <-
 substr(pos_terms, 1, 100)
 
 
-## ------------------------------------------------------------------------
+## ----get_negs------------------------------------------------------------
 # Extract all "negative-sentiment" tweets and collapse into a single string
 neg_terms <-
   crude_df %>% 
@@ -276,7 +245,7 @@ neg_terms <-
 substr(neg_terms, 1, 100)
 
 
-## ------------------------------------------------------------------------
+## ----combine_two---------------------------------------------------------
 # Concatenate the two strings into a vector with 2 elements
 all_terms <- c(pos_terms, neg_terms)
 
@@ -300,16 +269,16 @@ colnames(matrix_all_terms) <- c("Positive", "Negative")
 tail(matrix_all_terms)
 
 
-## ------------------------------------------------------------------------
+## ----plot_comparison, warning=FALSE--------------------------------------
 # Plot a Comparison Cloud with the tidied TDM
 comparison.cloud(matrix_all_terms, colors = c("green", "red"))
 
 
-## ------------------------------------------------------------------------
+## ----plot_commonality, warning=FALSE-------------------------------------
 commonality.cloud(matrix_all_terms, colors = "steelblue1")
 
 
-## ------------------------------------------------------------------------
+## ----comparison_df-------------------------------------------------------
 # Create a data.frame containing 25 of the most common terms to compare
 top15_terms <-
   matrix_all_terms %>% 
@@ -323,7 +292,7 @@ top15_terms <-
 head(top15_terms)
 
 
-## ------------------------------------------------------------------------
+## ----plot_pyramid--------------------------------------------------------
 # Create a Pyramid Plot to visualize the differences
 library(plotrix)
 
@@ -340,7 +309,7 @@ pyramid.plot(
 
 
 
-## ------------------------------------------------------------------------
+## ----plot_network--------------------------------------------------------
 # Create a Word Network plot with qdap'
 word_associate(
   crude_df$text, 
@@ -354,7 +323,7 @@ word_associate(
 title(main = "Words Associated with Trump in #CrudeOil Tweets")
 
 
-## ------------------------------------------------------------------------
+## ----plot_network2-------------------------------------------------------
 # Create a Word Network plot with qdap'
 word_associate(
   crude_df$text, 
@@ -368,7 +337,7 @@ word_associate(
 title(main = "Words Associated with Fed in #CrudeOil Tweets")
 
 
-## ------------------------------------------------------------------------
+## ----export_to_script----------------------------------------------------
 # Export the analysis to an R Script
 purl("crude-oil-sentiment-analysis.Rmd")
 
