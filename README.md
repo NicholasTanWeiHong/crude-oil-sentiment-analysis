@@ -16,7 +16,7 @@ First, git clone to a local folder with
 
 `git clone https://github.com/NicholasTanWeiHong/crude-oil-sentiment-analysis.git`
 
-Next, run `twitter_query.r`.
+Next, run `twitter_query.r` with custom API Keys from [Twitter](https://developer.twitter.com/).
 
 Finally, the code in `crude-oil-sentiment-analysis.R` may be used to generate insights.
 
